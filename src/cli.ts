@@ -20,6 +20,22 @@ import { HDKey } from '@scure/bip32';
 
 const DEFAULT_API_URL = 'https://api-stg.clkd.xyz/v1';
 
+// Auto-load .env.clkd if it exists (so `source` isn't needed)
+try {
+  const envFile = fs.readFileSync('.env.clkd', 'utf-8');
+  for (const line of envFile.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx === -1) continue;
+    const key = trimmed.slice(0, eqIdx);
+    const value = trimmed.slice(eqIdx + 1);
+    if (!process.env[key]) process.env[key] = value;
+  }
+} catch {
+  // No .env.clkd yet — that's fine for setup
+}
+
 const command = process.argv[2];
 
 switch (command) {
