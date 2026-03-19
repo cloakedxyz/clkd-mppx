@@ -16,16 +16,13 @@ npm install
 npx tsx src/cli.ts setup <invite-code>
 
 # 2. Fund — generates a stealth address to send tokens to
-source .env.clkd
 npx tsx src/cli.ts fund
 # Send pathUSD on Tempo Moderato to the address shown
 
 # 3. Check balance
-source .env.clkd
 npx tsx src/cli.ts balance
 
 # 4. Use mppx as normal — payments route through Cloaked automatically
-source .env.clkd
 npx mppx https://mpp.dev/api/ping/paid
 ```
 
@@ -69,7 +66,6 @@ export default defineConfig({
 
 **3. Set environment variables and use mppx:**
 ```bash
-source .env.clkd
 npx mppx https://some-mpp-service.com/api
 ```
 
