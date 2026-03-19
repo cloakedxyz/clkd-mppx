@@ -206,7 +206,7 @@ export interface ChargeParameters {
   accountId: string;
   /** Cloaked API key or JWT token. */
   apiKey: string;
-  /** Cloaked API base URL. @default 'https://api.clkd.xyz/v1' */
+  /** Cloaked API base URL. @default 'https://api-stg.clkd.xyz/v1' */
   apiUrl?: string;
   /** Tempo chain ID. @default 42431 */
   chainId?: number;
@@ -229,7 +229,7 @@ export function charge(parameters: ChargeParameters) {
     childPView,
     accountId,
     apiKey,
-    apiUrl = 'https://api.clkd.xyz/v1',
+    apiUrl = 'https://api-stg.clkd.xyz/v1',
     chainId = 42431,
     decimals = 6,
   } = parameters;
@@ -310,7 +310,7 @@ export function charge(parameters: ChargeParameters) {
           // Serialize r + s + v into a single hex string
           const r = authorization.r;
           const s = (authorization.s as string).slice(2);
-          const v = authorization.v === 27n || authorization.v === 27 ? '1b' : '1c';
+          const v = BigInt(authorization.v ?? 27) === 27n ? '1b' : '1c';
           const signature = `${r}${s}${v}`;
 
           return { ...delegation, signature };

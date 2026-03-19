@@ -7,15 +7,26 @@ Drop-in privacy layer for [mppx](https://mpp.dev). Your agent gets an ENS identi
 ## Quick Start
 
 ```bash
-# 1. Setup — creates Cloaked account, writes mppx.config.ts
-npx clkd-mppx setup
+# Clone and install
+git clone https://github.com/cloakedxyz/clkd-mppx.git
+cd clkd-mppx
+npm install
 
-# 2. Fund — get a stealth address to send tokens to
+# 1. Setup — creates a Cloaked account, writes mppx.config.ts and .env.clkd
+npx tsx src/cli.ts setup <invite-code>
+
+# 2. Fund — generates a stealth address to send tokens to
 source .env.clkd
-npx clkd-mppx fund
+npx tsx src/cli.ts fund
+# Send pathUSD on Tempo Moderato to the address shown
 
-# 3. Use mppx as normal — payments route through Cloaked automatically
-npx mppx https://parallelmpp.dev/api/search --method POST -J '{"query":"hello"}'
+# 3. Check balance
+source .env.clkd
+npx tsx src/cli.ts balance
+
+# 4. Use mppx as normal — payments route through Cloaked automatically
+source .env.clkd
+npx mppx https://mpp.dev/api/ping/paid
 ```
 
 ## How It Works
@@ -58,6 +69,7 @@ export default defineConfig({
 
 **3. Set environment variables and use mppx:**
 ```bash
+source .env.clkd
 npx mppx https://some-mpp-service.com/api
 ```
 
@@ -85,9 +97,20 @@ const response = await client.fetch('https://paid-api.example.com/resource')
 
 | Command | Description |
 |---------|-------------|
-| `npx clkd-mppx setup` | Generate stealth keys, register with Cloaked, write config files |
-| `npx clkd-mppx fund` | Generate a payment address to fund the account |
-| `npx clkd-mppx balance` | Check Tempo balance |
+| `npx tsx src/cli.ts setup <invite-code>` | Generate stealth keys, register with Cloaked, write config files |
+| `npx tsx src/cli.ts fund` | Generate a payment address to fund the account |
+| `npx tsx src/cli.ts balance` | Check Tempo balance |
+
+## Environment Variables
+
+After `setup`, credentials are written to `.env.clkd`. Source it before running other commands:
+
+| Variable | Description |
+|----------|-------------|
+| `CLKD_P_SPEND` | Stealth spending private key (hex) |
+| `CLKD_CHILD_P_VIEW` | Child viewing private key (hex) |
+| `CLKD_ACCOUNT_ID` | Cloaked account ID |
+| `CLKD_API_KEY` | JWT token for Cloaked API |
 
 ## License
 

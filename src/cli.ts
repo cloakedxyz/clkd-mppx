@@ -18,7 +18,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { genKeys } from '@cloakedxyz/clkd-stealth/dist/client/genKeys.js';
 import { HDKey } from '@scure/bip32';
 
-const DEFAULT_API_URL = 'https://api.clkd.xyz/v1';
+const DEFAULT_API_URL = 'https://api-stg.clkd.xyz/v1';
 
 const command = process.argv[2];
 
@@ -58,7 +58,10 @@ async function setup() {
   // 1. Generate keys using clkd-stealth
   const spendSecret = '0x' + crypto.randomBytes(32).toString('hex');
   const viewSecret = '0x' + crypto.randomBytes(32).toString('hex');
-  const { p_spend, P_spend, p_view, P_view } = genKeys({ spendSecret, viewSecret });
+  const { p_spend, P_spend, p_view, P_view } = genKeys({
+    spendSecret: spendSecret as `0x${string}`,
+    viewSecret: viewSecret as `0x${string}`,
+  });
 
   // Derive child viewing key
   const masterNode = HDKey.fromMasterSeed(Buffer.from(p_view.slice(2), 'hex'));
@@ -119,21 +122,7 @@ async function setup() {
   if (!accountId) {
     // 4. Get HPKE public key and encrypt
     console.log('Registering account...');
-    // Dynamic import — works when @cloakedxyz/clkd-sdk-client is installed or when
-    // running from the monorepo with the built dist available.
-    let fetchHpkePublicKey: (url: string) => Promise<Uint8Array>;
-    let hpkeEncrypt: (plaintext: Uint8Array, key: Uint8Array) => { ciphertext: string; encapsulatedKey: string };
-    try {
-      const hpke = await import('@cloakedxyz/clkd-sdk-client/hpke' as string);
-      fetchHpkePublicKey = hpke.fetchHpkePublicKey;
-      hpkeEncrypt = hpke.hpkeEncrypt;
-    } catch {
-      // Fallback: try monorepo path
-      const hpke = await import('/Users/oliviabarnett/Code/cloaked/sdk-client/dist/hpke.js' as string);
-      fetchHpkePublicKey = hpke.fetchHpkePublicKey;
-      hpkeEncrypt = hpke.hpkeEncrypt;
-    }
-
+    const { fetchHpkePublicKey, hpkeEncrypt } = await import('./hpke.js');
     const serverPubKey = await fetchHpkePublicKey(apiUrl);
     const payload = new TextEncoder().encode(JSON.stringify({ P_spend, P_view, child_p_view }));
     const { ciphertext, encapsulatedKey } = hpkeEncrypt(payload, serverPubKey);
