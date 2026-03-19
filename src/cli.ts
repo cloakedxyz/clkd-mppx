@@ -18,7 +18,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { genKeys } from '@cloakedxyz/clkd-stealth/dist/client/genKeys.js';
 import { HDKey } from '@scure/bip32';
 
-const DEFAULT_API_URL = 'https://api-stg.clkd.xyz/v1';
+const DEFAULT_API_URL = 'https://api.clkd.xyz/v1';
 
 // Auto-load .env.clkd if it exists (so `source` isn't needed)
 try {
@@ -236,7 +236,7 @@ async function fund() {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({ chainId: 42431 }),
+    body: JSON.stringify({ chainId: 4217 }),
   });
 
   if (!res.ok) {
@@ -265,7 +265,7 @@ async function balance() {
     process.exit(1);
   }
 
-  const res = await fetch(`${apiUrl}/accounts/${accountId}/balance/42431`, {
+  const res = await fetch(`${apiUrl}/accounts/${accountId}/balance/4217`, {
     headers: {
       Authorization: `Bearer ${apiKey}`,
     },

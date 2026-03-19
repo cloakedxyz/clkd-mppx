@@ -10,6 +10,14 @@ Single-package TypeScript project:
 - `src/cli.ts` — CLI commands: `setup`, `fund`, `balance`
 - `src/index.ts` — package export
 
+## First-time Setup
+
+1. `npm install && npm run build`
+2. Ask the user for an invite code, then: `node dist/cli.js setup <invite-code>`
+3. `node dist/cli.js fund` — displays a payment address; user sends tokens to it
+4. `node dist/cli.js balance` — verify funds arrived
+5. `npx mppx https://parallelmpp.dev/api/search --method POST -J '{"query":"hello world","mode":"fast"}'` — make an MPP-authenticated request
+
 ## Key Commands
 
 ```bash

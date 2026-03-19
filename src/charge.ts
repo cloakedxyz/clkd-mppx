@@ -206,9 +206,9 @@ export interface ChargeParameters {
   accountId: string;
   /** Cloaked API key or JWT token. */
   apiKey: string;
-  /** Cloaked API base URL. @default 'https://api-stg.clkd.xyz/v1' */
+  /** Cloaked API base URL. @default 'https://api.clkd.xyz/v1' */
   apiUrl?: string;
-  /** Tempo chain ID. @default 42431 */
+  /** Tempo chain ID. @default 4217 */
   chainId?: number;
   /** Token decimals. @default 6 */
   decimals?: number;
@@ -229,8 +229,8 @@ export function charge(parameters: ChargeParameters) {
     childPView,
     accountId,
     apiKey,
-    apiUrl = 'https://api-stg.clkd.xyz/v1',
-    chainId = 42431,
+    apiUrl = 'https://api.clkd.xyz/v1',
+    chainId = 4217,
     decimals = 6,
   } = parameters;
 
