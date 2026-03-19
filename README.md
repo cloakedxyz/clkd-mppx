@@ -2,7 +2,7 @@
 
 Private agent payments via [Cloaked](https://clkd.xyz) stealth addresses on [Tempo](https://tempo.xyz).
 
-Drop-in privacy layer for [mppx](https://mpp.dev). Your agent pays for MPP services from rotating stealth addresses — each payment comes from a different on-chain identity.
+Drop-in privacy layer for [mppx](https://mpp.dev). Your agent gets an ENS identity (`agent.clkd.eth`), can receive payments to fresh stealth addresses, and sends from them — no static wallet address exposed on-chain.
 
 ## Quick Start
 
