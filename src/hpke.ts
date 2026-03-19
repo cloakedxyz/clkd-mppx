@@ -8,16 +8,16 @@
  * Pure JS — works on web and Node.
  */
 
-// @ts-ignore — noble subpath exports
-import { x25519 } from '@noble/curves/ed25519';
+// @ts-ignore — noble subpath exports need .js for Node ESM
+import { x25519 } from '@noble/curves/ed25519.js';
 // @ts-ignore
-import { extract as hkdfExtract, expand as hkdfExpand } from '@noble/hashes/hkdf';
+import { extract as hkdfExtract, expand as hkdfExpand } from '@noble/hashes/hkdf.js';
 // @ts-ignore
-import { sha256 } from '@noble/hashes/sha256';
+import { sha256 } from '@noble/hashes/sha2.js';
 // @ts-ignore
-import { concatBytes, randomBytes } from '@noble/hashes/utils';
+import { concatBytes, randomBytes } from '@noble/hashes/utils.js';
 // @ts-ignore
-import { gcm } from '@noble/ciphers/aes';
+import { gcm } from '@noble/ciphers/aes.js';
 
 // ---------------------------------------------------------------------------
 // Base64 utilities
