@@ -22,7 +22,7 @@ npm run typecheck    # tsc --noEmit
 This package provides a drop-in replacement for mppx's `tempo.charge()` client method. When mppx encounters a 402 challenge:
 
 1. Our `createCredential` calls Cloaked's `POST /accounts/:id/quote` with the challenge's amount/recipient/token
-2. Derives stealth signing keys using `deriveStealthSigningKey(pSpend, pView, derivationNonce)` for each intent
+2. Derives stealth signing keys using `deriveStealthSigningKey(pSpend, childPView, derivationNonce)` for each intent
 3. Signs intents (EIP-712) and delegations (EIP-7702) locally — self-custodial, keys never leave the client
 4. Submits to Cloaked's `POST /accounts/:id/submit` for relay
 5. Returns an MPP credential with the tx hash (type: "hash")

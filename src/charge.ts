@@ -15,7 +15,7 @@
  *   methods: [
  *     charge({
  *       pSpend: process.env.CLKD_P_SPEND as `0x${string}`,
- *       pView: process.env.CLKD_P_VIEW as `0x${string}`,
+ *       childPView: process.env.CLKD_CHILD_P_VIEW as `0x${string}`,
  *       accountId: process.env.CLKD_ACCOUNT_ID!,
  *       apiKey: process.env.CLKD_API_KEY!,
  *     }),
@@ -25,14 +25,13 @@
  */
 
 import {
-  bytesToHex,
   hexToBytes,
+  getAddress,
   decodeAbiParameters,
   parseAbiParameters,
   type Hex,
 } from 'viem';
 import { HDKey, privateKeyToAccount } from 'viem/accounts';
-import { deriveChildViewingNode } from '@cloakedxyz/clkd-stealth';
 import { deriveDeterministicEphemeralKey } from '@cloakedxyz/clkd-stealth/dist/shared/deriveDeterministicEphemeralKey.js';
 import { genStealthPrivateKey } from '@cloakedxyz/clkd-stealth/dist/client/genStealthPrivateKey.js';
 
@@ -105,16 +104,10 @@ interface SubmitTransactionResponse {
 
 function deriveStealthSigningKey(
   p_spend: Hex | string,
-  p_view: Hex | string,
+  childPView: Hex | string,
   derivationNonce: bigint,
 ): { p_stealth: Hex; stealthAddress: Hex } {
-  const child_p_view_hdkey = deriveChildViewingNode(p_view as Hex);
-  if (!child_p_view_hdkey.privateKey) {
-    throw new Error('Failed to derive child viewing node private key');
-  }
-
-  const child_p_view_hex = bytesToHex(child_p_view_hdkey.privateKey);
-  const childViewingNode = HDKey.fromMasterSeed(hexToBytes(child_p_view_hex));
+  const childViewingNode = HDKey.fromMasterSeed(hexToBytes(childPView as Hex));
 
   const { p_derived } = deriveDeterministicEphemeralKey(childViewingNode, derivationNonce);
 
@@ -207,8 +200,8 @@ interface Challenge {
 export interface ChargeParameters {
   /** Stealth spending private key (hex). */
   pSpend: Hex;
-  /** Stealth viewing private key (hex). */
-  pView: Hex;
+  /** Child viewing private key (hex). Derived from p_view during account setup. */
+  childPView: Hex;
   /** Cloaked account ID. */
   accountId: string;
   /** Cloaked API key or JWT token. */
@@ -233,7 +226,7 @@ export interface ChargeParameters {
 export function charge(parameters: ChargeParameters) {
   const {
     pSpend,
-    pView,
+    childPView,
     accountId,
     apiKey,
     apiUrl = 'https://api.clkd.xyz/v1',
@@ -257,6 +250,10 @@ export function charge(parameters: ChargeParameters) {
         throw new Error('Challenge missing recipient address');
       }
 
+      // Normalize addresses to EIP-55 checksummed format (Cloaked API requires it)
+      const normalizedCurrency = getAddress(currency);
+      const normalizedRecipient = getAddress(recipient);
+
       // 1. Get a quote from Cloaked — selects spendables to cover the amount
       const quote = await fetchJson<QuoteResponse>(
         `${apiUrl}/accounts/${accountId}/quote`,
@@ -266,10 +263,10 @@ export function charge(parameters: ChargeParameters) {
           body: JSON.stringify({
             type: 'send',
             chainId,
-            token: currency,
+            token: normalizedCurrency,
             amount,
             decimals,
-            destinationAddress: recipient,
+            destinationAddress: normalizedRecipient,
           }),
         },
       );
@@ -279,7 +276,7 @@ export function charge(parameters: ChargeParameters) {
         quote.intents.map(async (intent) => {
           const { p_stealth, stealthAddress } = deriveStealthSigningKey(
             pSpend,
-            pView,
+            childPView,
             BigInt(intent.derivationNonce),
           );
 
@@ -299,7 +296,7 @@ export function charge(parameters: ChargeParameters) {
         quote.delegations.map(async (delegation) => {
           const { p_stealth } = deriveStealthSigningKey(
             pSpend,
-            pView,
+            childPView,
             BigInt(delegation.derivationNonce),
           );
 
@@ -310,7 +307,13 @@ export function charge(parameters: ChargeParameters) {
             nonce: delegation.authorizationNonce,
           });
 
-          return { ...delegation, signature: authorization };
+          // Serialize r + s + v into a single hex string
+          const r = authorization.r;
+          const s = (authorization.s as string).slice(2);
+          const v = authorization.v === 27n || authorization.v === 27 ? '1b' : '1c';
+          const signature = `${r}${s}${v}`;
+
+          return { ...delegation, signature };
         }),
       );
 
@@ -324,12 +327,51 @@ export function charge(parameters: ChargeParameters) {
             intents: signedIntents,
             delegations: signedDelegations,
             quoteId: quote.quoteId,
-          }),
+          }, (_key, value) => typeof value === 'bigint' ? value.toString() : value),
         },
       );
 
-      if (!result.success || !result.txHash) {
+      if (!result.success && !result.txHash && !result.quoteId) {
         throw new Error(result.message || 'Transaction relay failed');
+      }
+
+      // If queued but no txHash yet, poll for it
+      if (!result.txHash && result.quoteId) {
+        // Wait for relay to confirm
+        const maxAttempts = 30;
+        for (let i = 0; i < maxAttempts; i++) {
+          await new Promise((r) => setTimeout(r, 1000));
+          const pendingRes = await fetch(
+            `${apiUrl}/accounts/${accountId}/activities/pending`,
+            { headers },
+          );
+          if (!pendingRes.ok) continue;
+          const pending = await pendingRes.json() as {
+            pending: Array<{ quoteId?: string; txHash?: string; status?: string }>;
+          };
+          const match = pending.pending?.find((p) => p.quoteId === result.quoteId);
+          if (match?.txHash) {
+            result.txHash = match.txHash;
+            break;
+          }
+          // Also check confirmed activities
+          const activitiesRes = await fetch(
+            `${apiUrl}/accounts/${accountId}/activities?limit=5`,
+            { headers },
+          );
+          if (activitiesRes.ok) {
+            const activities = await activitiesRes.json() as {
+              activities: Array<{ txHash?: string }>;
+            };
+            if (activities.activities?.[0]?.txHash) {
+              result.txHash = activities.activities[0].txHash;
+              break;
+            }
+          }
+        }
+        if (!result.txHash) {
+          throw new Error('Transaction queued but no txHash received after waiting');
+        }
       }
 
       // 5. Build MPP credential with the tx hash

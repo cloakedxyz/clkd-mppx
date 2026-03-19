@@ -48,7 +48,7 @@ export default defineConfig({
   methods: [
     charge({
       pSpend: process.env.CLKD_P_SPEND as `0x${string}`,
-      pView: process.env.CLKD_P_VIEW as `0x${string}`,
+      childPView: process.env.CLKD_CHILD_P_VIEW as `0x${string}`,
       accountId: process.env.CLKD_ACCOUNT_ID!,
       apiKey: process.env.CLKD_API_KEY!,
     }),
@@ -71,7 +71,7 @@ const client = Mppx.create({
   methods: [
     charge({
       pSpend: '0x...',
-      pView: '0x...',
+      childPView: '0x...',
       accountId: 'clkd_acct_...',
       apiKey: 'clkd_...',
     }),

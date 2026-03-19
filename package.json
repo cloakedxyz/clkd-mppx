@@ -21,14 +21,16 @@
   },
   "dependencies": {
     "@cloakedxyz/clkd-stealth": "^1.1.0",
+    "@scure/bip32": "^2.0.1",
     "viem": "^2.0.0"
   },
   "peerDependencies": {
     "mppx": ">=0.4.0"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.0.0"
   },
   "license": "MIT",
   "repository": {

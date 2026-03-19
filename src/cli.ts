@@ -13,9 +13,10 @@
 
 import * as fs from 'node:fs';
 import * as crypto from 'node:crypto';
-import { bytesToHex, type Hex } from 'viem';
-import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
-import { deriveChildViewingNode } from '@cloakedxyz/clkd-stealth';
+import { type Hex } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { genKeys } from '@cloakedxyz/clkd-stealth/dist/client/genKeys.js';
+import { HDKey } from '@scure/bip32';
 
 const DEFAULT_API_URL = 'https://api.clkd.xyz/v1';
 
@@ -50,36 +51,36 @@ route through Cloaked stealth addresses automatically.`);
 
 async function setup() {
   const apiUrl = process.env.CLKD_API_URL || DEFAULT_API_URL;
+  const inviteCode = process.argv[3] || process.env.CLKD_INVITE_CODE;
 
   console.log('Generating stealth keys...');
 
-  // 1. Generate p_spend and p_view
-  const p_spend = generatePrivateKey();
-  const p_view = generatePrivateKey();
-
-  const spendAccount = privateKeyToAccount(p_spend);
-  const viewAccount = privateKeyToAccount(p_view);
-
-  const P_spend = spendAccount.publicKey;
-  const P_view = viewAccount.publicKey;
+  // 1. Generate keys using clkd-stealth
+  const spendSecret = '0x' + crypto.randomBytes(32).toString('hex');
+  const viewSecret = '0x' + crypto.randomBytes(32).toString('hex');
+  const { p_spend, P_spend, p_view, P_view } = genKeys({ spendSecret, viewSecret });
 
   // Derive child viewing key
-  const childNode = deriveChildViewingNode(p_view);
+  const masterNode = HDKey.fromMasterSeed(Buffer.from(p_view.slice(2), 'hex'));
+  const childNode = masterNode.derive('m/0');
   if (!childNode.privateKey) {
     throw new Error('Failed to derive child viewing node');
   }
-  const child_p_view = bytesToHex(childNode.privateKey);
+  const child_p_view = '0x' + Buffer.from(childNode.privateKey).toString('hex');
 
+  const spendAccount = privateKeyToAccount(p_spend as Hex);
   console.log(`  Spend address: ${spendAccount.address}`);
 
   // 2. Get SIWE nonce
   console.log('Authenticating...');
   const nonceRes = await fetch(`${apiUrl}/nonce?address=${spendAccount.address}`);
   if (!nonceRes.ok) throw new Error(`Failed to get nonce: ${nonceRes.statusText}`);
-  const nonce = await nonceRes.json() as string;
+  const nonce = await nonceRes.text();
 
   // 3. Sign SIWE message
-  const domain = new URL(apiUrl).hostname;
+  // SIWE domain must be the app domain, not the API domain
+  const apiHostname = new URL(apiUrl).hostname;
+  const domain = apiHostname.replace('api-stg.', 'app-stg.').replace('api.', 'app.');
   const issuedAt = new Date().toISOString();
   const siweMessage = [
     `${domain} wants you to sign in with your Ethereum account:`,
@@ -116,20 +117,34 @@ async function setup() {
   let accountId = existingAccountId;
 
   if (!accountId) {
-    // 4. Get HPKE public key
+    // 4. Get HPKE public key and encrypt
     console.log('Registering account...');
-    const hpkeRes = await fetch(`${apiUrl}/.well-known/hpke-public-key`);
-    if (!hpkeRes.ok) throw new Error(`Failed to get HPKE key: ${hpkeRes.statusText}`);
-    const { publicKey: hpkePublicKey } = await hpkeRes.json() as { publicKey: string };
+    // Dynamic import — works when @cloakedxyz/clkd-sdk-client is installed or when
+    // running from the monorepo with the built dist available.
+    let fetchHpkePublicKey: (url: string) => Promise<Uint8Array>;
+    let hpkeEncrypt: (plaintext: Uint8Array, key: Uint8Array) => { ciphertext: string; encapsulatedKey: string };
+    try {
+      const hpke = await import('@cloakedxyz/clkd-sdk-client/hpke' as string);
+      fetchHpkePublicKey = hpke.fetchHpkePublicKey;
+      hpkeEncrypt = hpke.hpkeEncrypt;
+    } catch {
+      // Fallback: try monorepo path
+      const hpke = await import('/Users/oliviabarnett/Code/cloaked/sdk-client/dist/hpke.js' as string);
+      fetchHpkePublicKey = hpke.fetchHpkePublicKey;
+      hpkeEncrypt = hpke.hpkeEncrypt;
+    }
 
-    // 5. Register account (send keys as plaintext for now — production should HPKE encrypt)
+    const serverPubKey = await fetchHpkePublicKey(apiUrl);
+    const payload = new TextEncoder().encode(JSON.stringify({ P_spend, P_view, child_p_view }));
+    const { ciphertext, encapsulatedKey } = hpkeEncrypt(payload, serverPubKey);
+
     const registerRes = await fetch(`${apiUrl}/accounts/`, {
       method: 'POST',
       headers: authHeaders,
       body: JSON.stringify({
-        P_spend,
-        P_view,
-        child_p_view,
+        ciphertext,
+        encapsulatedKey,
+        ...(inviteCode && { inviteCode }),
       }),
     });
 
@@ -154,7 +169,7 @@ export default defineConfig({
   methods: [
     charge({
       pSpend: process.env.CLKD_P_SPEND as \`0x\${string}\`,
-      pView: process.env.CLKD_P_VIEW as \`0x\${string}\`,
+      childPView: process.env.CLKD_CHILD_P_VIEW as \`0x\${string}\`,
       accountId: process.env.CLKD_ACCOUNT_ID!,
       apiKey: process.env.CLKD_API_KEY!,
     }),
@@ -167,7 +182,7 @@ export default defineConfig({
 
   // 7. Write .env
   const envContent = `CLKD_P_SPEND=${p_spend}
-CLKD_P_VIEW=${p_view}
+CLKD_CHILD_P_VIEW=${child_p_view}
 CLKD_ACCOUNT_ID=${accountId}
 CLKD_API_KEY=${token}
 `;
