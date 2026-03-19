@@ -1,0 +1,47 @@
+{
+  "name": "clkd-mppx",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Privacy-preserving MPP payments via Cloaked stealth addresses",
+  "bin": {
+    "clkd-mppx": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/charge.d.ts",
+      "import": "./dist/charge.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cloakedxyz/clkd-stealth": "^1.1.0",
+    "viem": "^2.0.0"
+  },
+  "peerDependencies": {
+    "mppx": ">=0.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cloakedxyz/clkd-mppx.git"
+  },
+  "keywords": [
+    "cloaked",
+    "mppx",
+    "mpp",
+    "stealth-addresses",
+    "privacy",
+    "tempo",
+    "agent-payments"
+  ]
+}
