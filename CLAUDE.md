@@ -14,9 +14,9 @@ Single-package TypeScript project:
 
 1. `npm install && npm run build`
 2. Ask the user for an invite code, then: `node dist/cli.js setup <invite-code>`
-3. `node dist/cli.js fund` — displays a payment address; user sends tokens to it
-4. `node dist/cli.js balance` — verify funds arrived
-5. `npx mppx https://parallelmpp.dev/api/search --method POST -J '{"query":"hello world","mode":"fast"}'` — make an MPP-authenticated request
+3. `node dist/cli.js fund` — displays a payment address; tell the user to send tokens (USDC.e or pathUSD on Tempo) to it
+4. Wait for the user to confirm they've sent tokens, then: `node dist/cli.js balance` — verify funds arrived (retry if 0)
+5. `npx mppx https://parallelmpp.dev/api/search --method POST -J '{"query":"hello world","mode":"fast"}'` — make an MPP-authenticated request ($0.01)
 
 ## Key Commands
 

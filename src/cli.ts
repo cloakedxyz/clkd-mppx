@@ -214,9 +214,8 @@ Setup complete. Next steps:
   1. Fund your account:
      npx clkd-mppx fund
 
-  2. Source your env and use mppx as normal:
-     source .env.clkd
-     npx mppx https://some-mpp-service.com/api
+  2. Make a paid request:
+     npx mppx https://parallelmpp.dev/api/search --method POST -J '{"query":"hello","mode":"fast"}'
 `);
 }
 
