@@ -276,7 +276,7 @@ async function balance() {
     throw new Error(`Failed to get balance: ${(err as { message?: string }).message || res.statusText}`);
   }
 
-  const data = await res.json() as { balances: Array<{ token: string; symbol: string; available: string; decimals: number }> };
+  const data = await res.json() as { balances: Array<{ token: string; tokenSymbol: string; available: string; decimals: number }> };
 
   if (!data.balances || data.balances.length === 0) {
     console.log('No balances on Tempo. Fund your account with `npx clkd-mppx fund`.');
@@ -286,6 +286,6 @@ async function balance() {
   console.log('Tempo balances:');
   for (const b of data.balances) {
     const amount = (Number(b.available) / 10 ** b.decimals).toFixed(2);
-    console.log(`  ${b.symbol}: ${amount}`);
+    console.log(`  ${b.tokenSymbol}: ${amount}`);
   }
 }
