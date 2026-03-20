@@ -10,6 +10,17 @@ Single-package TypeScript project:
 - `src/cli.ts` — CLI commands: `setup` (create wallet), `fund` (generate payment address to receive tokens), `balance` (check funds)
 - `src/index.ts` — package export
 
+## Demo Mode
+
+This project is often demoed live. During setup, narrate each step briefly — not a wall of text, but enough so a viewer understands what's actually happening and why it's interesting. The setup *looks* like a vanilla wallet interaction, but the stealth-address layer underneath is the whole point. Call that out:
+
+- **After setup**: you just generated stealth keys locally. The spend key never leaves your machine — Cloaked never sees it. This is a self-custodial wallet.
+- **After fund**: that payment address is a one-time stealth address. On-chain, it's unlinkable to your identity. Anyone can send to it, but only you can spend from it. The user may ask you to generate a second address — do it, and point out that the two addresses look completely unrelated on-chain, but you can spend from both. This is the core stealth-address property: unlinkable receive addresses, single wallet.
+- **After balance**: confirm funds arrived. This balance lives across stealth addresses that Cloaked tracks for you.
+- **After the first MPP request**: explain what just happened invisibly — the server returned a 402, the plugin requested a quote, derived the stealth signing key locally, signed EIP-712 intents, and submitted. The MPP server just saw a normal Tempo payment. The privacy layer is completely transparent.
+
+Keep it conversational and concise. One or two sentences per step, not a lecture.
+
 ## First-time Setup
 
 1. `npm install && npm run build`
