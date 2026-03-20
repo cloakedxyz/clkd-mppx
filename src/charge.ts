@@ -9,11 +9,11 @@
  * ```ts
  * // mppx.config.ts
  * import { defineConfig } from 'mppx/cli'
- * import { charge } from 'clkd-mppx'
+ * import { plugin } from 'clkd-mppx'
  *
  * export default defineConfig({
- *   methods: [
- *     charge({
+ *   plugins: [
+ *     plugin({
  *       pSpend: process.env.CLKD_P_SPEND as `0x${string}`,
  *       childPView: process.env.CLKD_CHILD_P_VIEW as `0x${string}`,
  *       accountId: process.env.CLKD_ACCOUNT_ID!,
@@ -400,6 +400,51 @@ export function charge(parameters: ChargeParameters) {
         .replace(/=/g, '');
 
       return `Payment ${base64url}`;
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// CLI Plugin
+// ---------------------------------------------------------------------------
+
+/**
+ * Creates a Cloaked CLI plugin for mppx.
+ *
+ * Use this in `plugins` (not `methods`) so it takes priority over the
+ * built-in tempo plugin.
+ *
+ * @example
+ * ```ts
+ * // mppx.config.ts
+ * import { defineConfig } from 'mppx/cli'
+ * import { plugin } from 'clkd-mppx'
+ *
+ * export default defineConfig({
+ *   plugins: [
+ *     plugin({
+ *       pSpend: process.env.CLKD_P_SPEND as `0x${string}`,
+ *       childPView: process.env.CLKD_CHILD_P_VIEW as `0x${string}`,
+ *       accountId: process.env.CLKD_ACCOUNT_ID!,
+ *       apiKey: process.env.CLKD_API_KEY!,
+ *     }),
+ *   ],
+ * })
+ * ```
+ */
+export function plugin(parameters: ChargeParameters) {
+  const method = charge(parameters);
+
+  return {
+    method: 'tempo' as const,
+
+    async setup() {
+      return {
+        tokenSymbol: 'USDC',
+        tokenDecimals: parameters.decimals ?? 6,
+        explorerUrl: 'https://explorer.tempo.xyz',
+        methods: [method],
+      };
     },
   };
 }

@@ -1,1 +1,1 @@
-export { charge, type ChargeParameters } from './charge.js';
+export { charge, plugin, type ChargeParameters } from './charge.js';
