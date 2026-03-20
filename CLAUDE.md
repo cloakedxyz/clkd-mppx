@@ -1,13 +1,13 @@
 # clkd-mppx
 
-Privacy-preserving MPP payments via Cloaked stealth addresses.
+A stealth-address wallet for agents. Cloaked gives each agent a wallet backed by stealth addresses — the agent can receive payments (to its subdomain name or by generating fresh payment addresses on demand) and spend them via MPP. Cloaked orchestrates the on-chain transactions; the agent holds the keys and signs locally.
 
 ## Project Structure
 
 Single-package TypeScript project:
 
-- `src/charge.ts` — mppx adapter: Cloaked-backed `createCredential` that replaces `tempo.charge()` on the client side
-- `src/cli.ts` — CLI commands: `setup`, `fund`, `balance`
+- `src/charge.ts` — mppx plugin: signs stealth-address transactions so the agent can spend its balance via MPP
+- `src/cli.ts` — CLI commands: `setup` (create wallet), `fund` (generate payment address to receive tokens), `balance` (check funds)
 - `src/index.ts` — package export
 
 ## First-time Setup
@@ -27,15 +27,17 @@ npm run typecheck    # tsc --noEmit
 
 ## How It Works
 
-This package provides a drop-in replacement for mppx's `tempo.charge()` client method. When mppx encounters a 402 challenge:
+**Receiving**: The agent generates one-time payment addresses via `fund`. Anyone can send tokens (USDC.e, pathUSD) on Tempo to these addresses. Cloaked tracks the balances.
 
-1. Our `createCredential` calls Cloaked's `POST /accounts/:id/quote` with the challenge's amount/recipient/token
-2. Derives stealth signing keys using `deriveStealthSigningKey(pSpend, childPView, derivationNonce)` for each intent
-3. Signs intents (EIP-712) and delegations (EIP-7702) locally — self-custodial, keys never leave the client
-4. Submits to Cloaked's `POST /accounts/:id/submit` for relay
-5. Returns an MPP credential with the tx hash (type: "hash")
+**Spending**: When mppx encounters a 402 payment challenge, our plugin:
 
-The returned object has `name: 'tempo'` and `intent: 'charge'` so mppx treats it as a standard tempo charge method.
+1. Requests a quote from Cloaked (`POST /accounts/:id/quote`) — Cloaked selects which stealth addresses to spend from
+2. Derives stealth signing keys locally — self-custodial, keys never leave the agent
+3. Signs intents (EIP-712) and delegations (EIP-7702) locally
+4. Submits signed transactions to Cloaked (`POST /accounts/:id/submit`) for relay
+5. Returns an MPP credential with the tx hash
+
+The plugin registers as `method: 'tempo'` so mppx servers see a standard Tempo charge payment.
 
 ## Dependencies
 
