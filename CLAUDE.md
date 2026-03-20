@@ -35,7 +35,7 @@ This package provides a drop-in replacement for mppx's `tempo.charge()` client m
 4. Submits to Cloaked's `POST /accounts/:id/submit` for relay
 5. Returns an MPP credential with the tx hash (type: "hash")
 
-The returned object has `name: 'tempo'` and `intent: 'charge'` so mppx treats it as a standard tempo charge method. mppx's plugin resolution is duck-typed — it matches on `name` + `intent` + `createCredential`.
+The returned object has `name: 'tempo'` and `intent: 'charge'` so mppx treats it as a standard tempo charge method.
 
 ## Dependencies
 
@@ -45,8 +45,8 @@ The returned object has `name: 'tempo'` and `intent: 'charge'` so mppx treats it
 
 ## Integration Points
 
-- **mppx config**: users create `mppx.config.ts` using `defineConfig({ methods: [charge(...)] })` from `mppx/cli`
-- **mppx CLI plugin resolution**: `src/cli/internal.ts` in mppx checks config methods before builtins, matching on `name` + `intent`
+- **mppx config**: users create `mppx.config.ts` using `defineConfig({ plugins: [plugin(...)] })` from `mppx/cli`
+- **mppx CLI plugin resolution**: `src/cli/internal.ts` in mppx checks **config plugins → builtin plugins → config methods**, in that order. We MUST register as a `plugin` (not a `method`) because we share the `tempo` method name with mppx's built-in tempo plugin — if we used `methods`, the builtin would always win.
 - **Cloaked API**: `POST /accounts/:id/quote` and `POST /accounts/:id/submit` — standard Cloaked send flow
 
 ## Cloaked API Endpoints Used
